@@ -552,8 +552,6 @@ class ReadMoreTextState extends State<ReadMoreText> {
       },
     );
 
-    print(contents);
-
     return TextSpan(style: textStyle, children: contents);
   }
 
