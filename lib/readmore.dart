@@ -18,8 +18,8 @@ class Annotation {
   });
 
   final RegExp regExp;
-  final InlineSpan Function({required String text, required TextStyle textStyle})
-      spanBuilder;
+  final InlineSpan Function(
+      {required String text, required TextStyle textStyle}) spanBuilder;
 }
 
 class ReadMoreText extends StatefulWidget {
@@ -176,6 +176,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
   final TapGestureRecognizer _recognizer = TapGestureRecognizer();
 
   ValueNotifier<bool>? _isCollapsed;
+
   ValueNotifier<bool> get _effectiveIsCollapsed =>
       widget.isCollapsed ?? (_isCollapsed ??= ValueNotifier(true));
 
@@ -338,7 +339,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
         final text = TextSpan(
           children: [
             if (preTextSpan != null) preTextSpan,
-            dataTextSpan,
+            _removeWidgetSpan(dataTextSpan),
             if (postTextSpan != null) postTextSpan,
           ],
         );
@@ -365,18 +366,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
         final delimiterSize = textPainter.size;
 
         // Layout and measure text
-        textPainter.text = TextSpan(
-          children: [
-            if (preTextSpan != null) preTextSpan,
-            TextSpan(
-              children: [
-                ...?dataTextSpan.children?.where((e) => e is! WidgetSpan)
-              ],
-              style: dataTextSpan.style,
-            ),
-            if (postTextSpan != null) postTextSpan,
-          ],
-        );
+        textPainter.text = text;
         textPainter.layout(minWidth: constraints.minWidth, maxWidth: maxWidth);
         final textSize = textPainter.size;
 
@@ -562,6 +552,8 @@ class ReadMoreTextState extends State<ReadMoreText> {
       },
     );
 
+    print(contents);
+
     return TextSpan(style: textStyle, children: contents);
   }
 
@@ -585,7 +577,8 @@ class ReadMoreTextState extends State<ReadMoreText> {
 
         final nextSpan = TextSpan(
           text: newText,
-          children: null, // remove potential children
+          children: null,
+          // remove potential children
           style: textSpan.style,
           recognizer: textSpan.recognizer,
           mouseCursor: textSpan.mouseCursor,
@@ -635,7 +628,8 @@ class ReadMoreTextState extends State<ReadMoreText> {
     final resultTextSpan = didTrim
         ? TextSpan(
             text: textSpan.text,
-            children: newChildren, // update children
+            children: newChildren,
+            // update children
             style: textSpan.style,
             recognizer: textSpan.recognizer,
             mouseCursor: textSpan.mouseCursor,
@@ -654,18 +648,16 @@ class ReadMoreTextState extends State<ReadMoreText> {
     );
   }
 
-  // bool _isTextSpan(InlineSpan span) {
-  //   if (span is! TextSpan) {
-  //     return false;
-  //   }
-  //
-  //   final children = span.children;
-  //   if (children == null || children.isEmpty) {
-  //     return true;
-  //   }
-  //
-  //   return children.every(_isTextSpan);
-  // }
+  InlineSpan _removeWidgetSpan(TextSpan span) {
+    return TextSpan(
+      children: [
+        ...?span.children
+            ?.where((e) => e is! WidgetSpan)
+            .map((e) => _removeWidgetSpan(e as TextSpan))
+      ],
+      style: span.style,
+    );
+  }
 }
 
 @immutable
