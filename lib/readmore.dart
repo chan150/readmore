@@ -18,7 +18,7 @@ class Annotation {
   });
 
   final RegExp regExp;
-  final TextSpan Function({required String text, required TextStyle textStyle})
+  final InlineSpan Function({required String text, required TextStyle textStyle})
       spanBuilder;
 }
 
@@ -319,7 +319,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
         final TextSpan dataTextSpan;
         // Constructed by ReadMoreText.rich(...)
         if (widget.richData != null) {
-          assert(_isTextSpan(widget.richData!));
+          // assert(_isTextSpan(widget.richData!));
           dataTextSpan = TextSpan(
             style: effectiveTextStyle,
             children: [widget.richData!],
@@ -365,7 +365,18 @@ class ReadMoreTextState extends State<ReadMoreText> {
         final delimiterSize = textPainter.size;
 
         // Layout and measure text
-        textPainter.text = text;
+        textPainter.text = TextSpan(
+          children: [
+            if (preTextSpan != null) preTextSpan,
+            TextSpan(
+              children: [
+                ...?dataTextSpan.children?.where((e) => e is! WidgetSpan)
+              ],
+              style: dataTextSpan.style,
+            ),
+            if (postTextSpan != null) postTextSpan,
+          ],
+        );
         textPainter.layout(minWidth: constraints.minWidth, maxWidth: maxWidth);
         final textSize = textPainter.size;
 
@@ -516,7 +527,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
       return TextSpan(text: data, style: textStyle);
     }
 
-    final contents = <TextSpan>[];
+    final contents = <InlineSpan>[];
 
     data.splitMapJoin(
       regExp,
@@ -540,7 +551,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
           textStyle: textStyle,
         );
 
-        assert(_isTextSpan(content));
+        // assert(_isTextSpan(content));
         contents.add(content);
 
         return '';
@@ -643,18 +654,18 @@ class ReadMoreTextState extends State<ReadMoreText> {
     );
   }
 
-  bool _isTextSpan(InlineSpan span) {
-    if (span is! TextSpan) {
-      return false;
-    }
-
-    final children = span.children;
-    if (children == null || children.isEmpty) {
-      return true;
-    }
-
-    return children.every(_isTextSpan);
-  }
+  // bool _isTextSpan(InlineSpan span) {
+  //   if (span is! TextSpan) {
+  //     return false;
+  //   }
+  //
+  //   final children = span.children;
+  //   if (children == null || children.isEmpty) {
+  //     return true;
+  //   }
+  //
+  //   return children.every(_isTextSpan);
+  // }
 }
 
 @immutable
