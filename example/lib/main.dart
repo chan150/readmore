@@ -274,13 +274,24 @@ class _DemoAppState extends State<DemoApp> {
         Padding(
           padding: const EdgeInsets.all(16),
           child: ReadMoreText(
-            '😊' * 200,
-            trimMode: _trimMode,
-            trimLines: _trimLines,
-            trimLength: _trimLength,
-            colorClickableText: Colors.blueAccent,
-            trimCollapsedText: '...Read more',
-            trimExpandedText: ' Less',
+            '@[{"key": {"inner":"test"}}] and @[{"key":"value"}]',
+            annotations: [
+              Annotation(
+                regExp: RegExp('@\\[(.+?)\\]'),
+                spanBuilder: ({required text, required textStyle}) {
+                  return WidgetSpan(
+                    child: Tooltip(
+                      message: 'It is just tooltip',
+                      child: Text(
+                        'It is a widget',
+                        style: TextStyle(height: 0),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+            style: TextStyle(color: Colors.red),
           ),
         ),
       ],
