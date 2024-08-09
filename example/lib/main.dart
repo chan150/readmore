@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:readmore/readmore.dart';
@@ -279,12 +281,17 @@ class _DemoAppState extends State<DemoApp> {
               Annotation(
                 regExp: RegExp('@\\[(.+?)\\]'),
                 spanBuilder: ({required text, required textStyle}) {
+                  final json = jsonDecode(text.substring(2, text.length - 1));
                   return WidgetSpan(
                     child: Tooltip(
                       message: 'It is just tooltip',
-                      child: Text(
-                        'It is a widget',
-                        style: TextStyle(height: 0),
+                      textAlign: TextAlign.center,
+                      child: Container(
+                        color: Colors.green,
+                        child: Text(
+                          json['key'].toString(),
+                          style: TextStyle(height: 0),
+                        ),
                       ),
                     ),
                   );
