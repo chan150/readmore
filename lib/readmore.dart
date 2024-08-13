@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui' as ui show TextHeightBehavior;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 enum TrimMode { Length, Line }
 
@@ -643,6 +645,100 @@ class ReadMoreTextState extends State<ReadMoreText> {
       textSpan: resultTextSpan,
       spanEndIndex: spanEndIndex,
       didTrim: didTrim,
+    );
+  }
+
+  Future<double?> _calculateWidgetSize(Widget widget) async {
+    final streamController = StreamController<double?>();
+    final child = InheritedTheme.captureAll(
+      context,
+      MediaQuery(
+        data: MediaQuery.of(context),
+        child: Material(
+          color: Colors.transparent,
+          child: Builder(
+            builder: (context) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (timeStamp) {
+                  final renderBox = context.findRenderObject() as RenderBox?;
+                  final size = renderBox?.size;
+                  streamController.add(size?.width);
+                  streamController.close();
+                },
+              );
+              return widget;
+            },
+          ),
+        ),
+      ),
+    );
+
+    final RenderRepaintBoundary repaintBoundary = RenderRepaintBoundary();
+    final platformDispatcher = WidgetsBinding.instance.platformDispatcher;
+    final fallBackView = platformDispatcher.views.first;
+    final view = View.maybeOf(context) ?? fallBackView;
+    Size logicalSize = view.physicalSize / view.devicePixelRatio; // Adapted
+
+    final RenderView renderView = RenderView(
+      view: view,
+      child: RenderPositionedBox(
+          alignment: Alignment.center, child: repaintBoundary),
+      configuration: ViewConfiguration(
+        // size: logicalSize,
+        logicalConstraints: BoxConstraints(
+          maxWidth: logicalSize.width,
+          maxHeight: logicalSize.height,
+        ),
+        devicePixelRatio: 1.0,
+      ),
+    );
+
+    final PipelineOwner pipelineOwner = PipelineOwner();
+    final BuildOwner buildOwner =
+        BuildOwner(focusManager: FocusManager(), onBuildScheduled: () {});
+
+    pipelineOwner.rootNode = renderView;
+    renderView.prepareInitialFrame();
+
+    final RenderObjectToWidgetElement<RenderBox> rootElement =
+        RenderObjectToWidgetAdapter<RenderBox>(
+            container: repaintBoundary,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: child,
+            )).attachToRenderTree(
+      buildOwner,
+    );
+
+    buildOwner.buildScope(
+      rootElement,
+    );
+    buildOwner.finalizeTree();
+
+    pipelineOwner.flushLayout();
+    pipelineOwner.flushCompositingBits();
+    pipelineOwner.flushPaint();
+
+    await for (final result in streamController.stream) {
+      return result;
+    }
+    return null;
+  }
+
+  InlineSpan _replaceWidgetSpan(TextSpan span) {
+    return TextSpan(
+      children: [
+        ...?span.children?.map((e) {
+          if (e is TextSpan) return _removeWidgetSpan(e);
+          final widget = (e as WidgetSpan).child;
+          final size = _calculateWidgetSize(widget);
+          final characterSize =
+              _calculateWidgetSize(Text('-', style: span.style)) ?? 1;
+          return TextSpan(text: '-', style: span.style);
+          return _removeWidgetSpan(e as TextSpan);
+        })
+      ],
+      style: span.style,
     );
   }
 
