@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui' as ui show TextHeightBehavior;
 
 import 'package:flutter/gestures.dart';
@@ -341,7 +340,7 @@ class ReadMoreTextState extends State<ReadMoreText> {
         final text = TextSpan(
           children: [
             if (preTextSpan != null) preTextSpan,
-            _removeWidgetSpan(dataTextSpan),
+            _replaceWidgetSpan(dataTextSpan),
             if (postTextSpan != null) postTextSpan,
           ],
         );
@@ -648,27 +647,14 @@ class ReadMoreTextState extends State<ReadMoreText> {
     );
   }
 
-  Future<double?> _calculateWidgetSize(Widget widget) async {
-    final streamController = StreamController<double?>();
+  double? _calculateWidgetSize(Widget widget) {
     final child = InheritedTheme.captureAll(
       context,
       MediaQuery(
         data: MediaQuery.of(context),
         child: Material(
           color: Colors.transparent,
-          child: Builder(
-            builder: (context) {
-              WidgetsBinding.instance.addPostFrameCallback(
-                (timeStamp) {
-                  final renderBox = context.findRenderObject() as RenderBox?;
-                  final size = renderBox?.size;
-                  streamController.add(size?.width);
-                  streamController.close();
-                },
-              );
-              return widget;
-            },
-          ),
+          child: widget,
         ),
       ),
     );
@@ -719,39 +705,36 @@ class ReadMoreTextState extends State<ReadMoreText> {
     pipelineOwner.flushCompositingBits();
     pipelineOwner.flushPaint();
 
-    await for (final result in streamController.stream) {
-      return result;
-    }
-    return null;
+    return rootElement.size?.width;
   }
 
   InlineSpan _replaceWidgetSpan(TextSpan span) {
     return TextSpan(
       children: [
         ...?span.children?.map((e) {
-          if (e is TextSpan) return _removeWidgetSpan(e);
+          if (e is TextSpan) return _replaceWidgetSpan(e);
           final widget = (e as WidgetSpan).child;
-          final size = _calculateWidgetSize(widget);
+          final widgetSize = _calculateWidgetSize(widget) ?? 0;
           final characterSize =
               _calculateWidgetSize(Text('-', style: span.style)) ?? 1;
-          return TextSpan(text: '-', style: span.style);
-          return _removeWidgetSpan(e as TextSpan);
+          final count = (widgetSize / characterSize).ceil();
+          return TextSpan(text: '-' * count, style: span.style);
         })
       ],
       style: span.style,
     );
   }
 
-  InlineSpan _removeWidgetSpan(TextSpan span) {
-    return TextSpan(
-      children: [
-        ...?span.children
-            ?.where((e) => e is! WidgetSpan)
-            .map((e) => _removeWidgetSpan(e as TextSpan))
-      ],
-      style: span.style,
-    );
-  }
+  // InlineSpan _removeWidgetSpan(TextSpan span) {
+  //   return TextSpan(
+  //     children: [
+  //       ...?span.children
+  //           ?.where((e) => e is! WidgetSpan)
+  //           .map((e) => _removeWidgetSpan(e as TextSpan))
+  //     ],
+  //     style: span.style,
+  //   );
+  // }
 }
 
 @immutable
